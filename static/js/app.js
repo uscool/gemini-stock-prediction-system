@@ -855,6 +855,11 @@ function displayNewsArticles(sentimentAnalysis) {
         return;
     }
     
+    // Calculate actual counts from articles instead of using percentages
+    const positiveCount = articles.filter(article => article.sentiment === 'positive').length;
+    const negativeCount = articles.filter(article => article.sentiment === 'negative').length;
+    const neutralCount = articles.filter(article => article.sentiment === 'neutral').length;
+    
     // Group articles by source
     const articlesBySource = {};
     articles.forEach(article => {
@@ -876,19 +881,19 @@ function displayNewsArticles(sentimentAnalysis) {
             <div class="col-md-3">
                 <div class="metric-card">
                     <div class="metric-label">Positive</div>
-                    <div class="metric-value text-success">${sentimentBreakdown.positive || 0}%</div>
+                    <div class="metric-value text-success">${positiveCount}</div>
                 </div>
             </div>
             <div class="col-md-3">
                 <div class="metric-card">
                     <div class="metric-label">Negative</div>
-                    <div class="metric-value text-danger">${sentimentBreakdown.negative || 0}%</div>
+                    <div class="metric-value text-danger">${negativeCount}</div>
                 </div>
             </div>
             <div class="col-md-3">
                 <div class="metric-card">
                     <div class="metric-label">Neutral</div>
-                    <div class="metric-value text-secondary">${sentimentBreakdown.neutral || 0}%</div>
+                    <div class="metric-value text-secondary">${neutralCount}</div>
                 </div>
             </div>
         </div>
@@ -1904,7 +1909,7 @@ function showComprehensiveAnalysis() {
     document.getElementById('portfolioAnalysis').classList.remove('d-none');
     
     // Reset analysis results
-    document.getElementById('analysisResults').innerHTML = `
+    document.getElementById('portfolioAnalysisResults').innerHTML = `
         <div class="text-center text-muted">
             <i class="fas fa-chart-line fa-3x mb-3"></i>
             <p>Click "Run Analysis" to get comprehensive AI-powered portfolio insights</p>
@@ -1957,7 +1962,7 @@ async function runComprehensiveAnalysis() {
 
 // Display comprehensive analysis results
 function displayComprehensiveAnalysis(analysisData) {
-    const analysisEl = document.getElementById('analysisResults');
+    const analysisEl = document.getElementById('portfolioAnalysisResults');
     
     if (!analysisData || !analysisData.analysis) {
         analysisEl.innerHTML = `
@@ -2199,7 +2204,7 @@ function showPortfolioAnalysis(analysisData) {
     document.getElementById('portfolioDetails').classList.add('d-none');
     document.getElementById('portfolioAnalysis').classList.remove('d-none');
     
-    const analysisEl = document.getElementById('analysisResults');
+    const analysisEl = document.getElementById('portfolioAnalysisResults');
     
     if (!analysisData || Object.keys(analysisData.analysis_by_asset || {}).length === 0) {
         analysisEl.innerHTML = `
@@ -2290,7 +2295,7 @@ async function analyzeHolding(assetSymbol) {
         
         if (result.success) {
             currentAnalysis = result.data;
-            displayAnalysisResults(result.data);
+            displayResults(result.data);
             showSuccess('Analysis completed successfully!');
         } else {
             showError(result.error || 'Analysis failed');

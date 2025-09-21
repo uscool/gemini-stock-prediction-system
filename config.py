@@ -135,6 +135,118 @@ class Config:
         'dia': 'DIA',  # Dow Jones ETF
         'vti': 'VTI',  # Total Stock Market ETF
         'voo': 'VOO',  # S&P 500 ETF
+        
+        # Indian Stocks (NSE/BSE)
+        # Banking & Financial Services
+        'hdfc_bank': 'HDFCBANK.NS',
+        'icici_bank': 'ICICIBANK.NS',
+        'sbi': 'SBIN.NS',
+        'kotak_mahindra': 'KOTAKBANK.NS',
+        'axis_bank': 'AXISBANK.NS',
+        'bajaj_finserv': 'BAJFINANCE.NS',
+        'bajaj_finance': 'BAJFINANCE.NS',
+        'hdfc_life': 'HDFCLIFE.NS',
+        'sbi_life': 'SBILIFE.NS',
+        'icici_prudential': 'ICICIPRULI.NS',
+        
+        # Technology & IT
+        'tcs': 'TCS.NS',
+        'infosys': 'INFY.NS',
+        'wipro': 'WIPRO.NS',
+        'hcl_tech': 'HCLTECH.NS',
+        'tech_mahindra': 'TECHM.NS',
+        'lti_mindtree': 'LTIM.NS',
+        'mphasis': 'MPHASIS.NS',
+        'persistent': 'PERSISTENT.NS',
+        'cyient': 'CYIENT.NS',
+        'cognizant': 'CTSH',  # US listed
+        
+        # Reliance Group
+        'reliance': 'RELIANCE.NS',
+        'jio_financial': 'JIOFIN.NS',
+        
+        # Automobile
+        'maruti_suzuki': 'MARUTI.NS',
+        'tata_motors': 'TATAMOTORS.NS',
+        'mahindra_mahindra': 'M&M.NS',
+        'bajaj_auto': 'BAJAJ-AUTO.NS',
+        'hero_motocorp': 'HEROMOTOCO.NS',
+        'eicher_motors': 'EICHERMOT.NS',
+        'ashok_leyland': 'ASHOKLEY.NS',
+        
+        # Pharmaceuticals
+        'sun_pharma': 'SUNPHARMA.NS',
+        'dr_reddys': 'DRREDDY.NS',
+        'cipla': 'CIPLA.NS',
+        'divis_labs': 'DIVISLAB.NS',
+        'lupin': 'LUPIN.NS',
+        'aurobindo_pharma': 'AUROPHARMA.NS',
+        'biocon': 'BIOCON.NS',
+        'cadila_healthcare': 'ZYDUSLIFE.NS',
+        
+        # FMCG & Consumer
+        'hindustan_unilever': 'HINDUNILVR.NS',
+        'itc': 'ITC.NS',
+        'nestle_india': 'NESTLEIND.NS',
+        'titan': 'TITAN.NS',
+        'tata_consumer': 'TATACONSUM.NS',
+        'britannia': 'BRITANNIA.NS',
+        'dabur': 'DABUR.NS',
+        'godrej_consumer': 'GODREJCP.NS',
+        'marico': 'MARICO.NS',
+        
+        # Energy & Oil
+        'ongc': 'ONGC.NS',
+        'oil_india': 'OIL.NS',
+        'indian_oil': 'IOC.NS',
+        'bharat_petroleum': 'BPCL.NS',
+        'hindustan_petroleum': 'HINDPETRO.NS',
+        'gail': 'GAIL.NS',
+        'petronet_lng': 'PETRONET.NS',
+        
+        # Metals & Mining
+        'tata_steel': 'TATASTEEL.NS',
+        'jsw_steel': 'JSWSTEEL.NS',
+        'hindalco': 'HINDALCO.NS',
+        'vedanta': 'VEDL.NS',
+        'coal_india': 'COALINDIA.NS',
+        'nmdc': 'NMDC.NS',
+        'sail': 'SAIL.NS',
+        
+        # Infrastructure & Construction
+        'larsen_toubro': 'LT.NS',
+        'adani_ports': 'ADANIPORTS.NS',
+        'ultra_cement': 'ULTRACEMCO.NS',
+        'shree_cement': 'SHREECEM.NS',
+        'grasim': 'GRASIM.NS',
+        'ambuja_cement': 'AMBUJACEM.NS',
+        'acc': 'ACC.NS',
+        
+        # Telecom
+        'bharti_airtel': 'BHARTIARTL.NS',
+        'vodafone_idea': 'IDEA.NS',
+        
+        # Power & Utilities
+        'ntpc': 'NTPC.NS',
+        'power_grid': 'POWERGRID.NS',
+        'tata_power': 'TATAPOWER.NS',
+        'adani_green': 'ADANIGREEN.NS',
+        'adani_transmission': 'ADANITRANS.NS',
+        
+        # Media & Entertainment
+        'zee_entertainment': 'ZEEL.NS',
+        'sun_tv': 'SUNTV.NS',
+        'network18': 'NETWORK18.NS',
+        
+        # Real Estate
+        'dlf': 'DLF.NS',
+        'godrej_properties': 'GODREJPROP.NS',
+        'brigade_enterprises': 'BRIGADE.NS',
+        
+        # Indian ETFs
+        'nifty_50': 'NIFTY50.NS',
+        'nifty_bank': 'NIFTYBANK.NS',
+        'sensex': 'SENSEX.NS',
     }
     
     # Combined symbols for unified access

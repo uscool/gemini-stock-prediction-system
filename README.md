@@ -47,11 +47,20 @@ A comprehensive AI-powered financial market analysis system that combines FinBER
 - **Security**: CSRF protection with Flask-WTF
 
 ### Analysis Pipeline
-1. **NLP Sentiment Analysis** - FinBERT model for financial sentiment
+1. **NLP Sentiment Analysis** - FinBERT model for financial sentiment from global and Indian news sources
 2. **Historical Data Analysis** - Technical indicators and trend analysis
 3. **AI Decision Making** - Google Gemini AI for trading recommendations
 4. **Portfolio Integration** - Context-aware recommendations
 5. **Communication** - Professional broker emails
+
+### News Sources
+**Global Sources:**
+- MarketWatch, CNBC, Financial Times
+
+**Indian Sources:**
+- Economic Times, Business Standard, Moneycontrol, Livemint, Financial Express
+
+**Coverage:** Real-time RSS feeds with intelligent filtering for relevant financial news
 
 ## 📋 Supported Assets
 

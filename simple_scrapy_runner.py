@@ -55,6 +55,41 @@ class SimpleScrapyRunner:
                 'urls': [
                     'https://www.ft.com/rss/home'
                 ]
+            },
+            {
+                'name': 'Economic Times',
+                'urls': [
+                    'https://economictimes.indiatimes.com/markets/rssfeeds/1977021501.cms',
+                    'https://economictimes.indiatimes.com/markets/stocks/rssfeeds/2146842.cms'
+                ]
+            },
+            {
+                'name': 'Business Standard',
+                'urls': [
+                    'https://www.business-standard.com/rss/markets-106.rss',
+                    'https://www.business-standard.com/rss/stock-market-107.rss'
+                ]
+            },
+            {
+                'name': 'Moneycontrol',
+                'urls': [
+                    'https://www.moneycontrol.com/rss/business.xml',
+                    'https://www.moneycontrol.com/rss/market.xml'
+                ]
+            },
+            {
+                'name': 'Livemint',
+                'urls': [
+                    'https://www.livemint.com/rss/markets',
+                    'https://www.livemint.com/rss/companies'
+                ]
+            },
+            {
+                'name': 'Financial Express',
+                'urls': [
+                    'https://www.financialexpress.com/market/rss/',
+                    'https://www.financialexpress.com/industry/rss/'
+                ]
             }
         ]
         
@@ -128,9 +163,17 @@ class SimpleScrapyRunner:
                                 title = getattr(entry, 'title', '')
                                 description = getattr(entry, 'description', '')
                                 
-                                # For general terms and commodities, be more inclusive
-                                if search_term.lower() in ['market', 'finance', 'trading', 'investment', 'gold', 'silver', 'oil', 'crude', 'copper', 'wheat', 'corn']:
-                                    # Accept all financial news for general terms and common commodities
+                                # For general terms, commodities, and Indian stocks, be more inclusive
+                                general_terms = [
+                                    'market', 'finance', 'trading', 'investment', 'stock', 'equity', 'share',
+                                    'gold', 'silver', 'oil', 'crude', 'copper', 'wheat', 'corn',
+                                    'sensex', 'nifty', 'bse', 'nse', 'indian', 'india', 'mumbai', 'delhi',
+                                    'tata', 'reliance', 'infosys', 'tcs', 'hdfc', 'icici', 'sbi', 'bharti',
+                                    'adani', 'wipro', 'hcl', 'maruti', 'bajaj', 'mahindra', 'itc', 'hindalco'
+                                ]
+                                
+                                if search_term.lower() in general_terms:
+                                    # Accept all financial news for general terms, commodities, and major Indian stocks
                                     pass
                                 elif not self._contains_search_term(title + ' ' + description, search_term):
                                     continue

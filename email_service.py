@@ -126,9 +126,9 @@ class EmailService:
         else:
             return f"Portfolio Update: HOLD {commodity} - ${current_price:.2f}"
     
-    async def _generate_human_email_content(self, trading_decision: Dict, 
-                                          sentiment_analysis: Dict, 
-                                          data_analysis: Dict) -> str:
+    def _generate_human_email_content(self, trading_decision: Dict, 
+                                    sentiment_analysis: Dict, 
+                                    data_analysis: Dict) -> str:
         """Generate human-like email content using Gemini AI"""
         
         commodity = trading_decision.get('commodity', 'Unknown').upper()
@@ -142,6 +142,7 @@ class EmailService:
         sentiment_score = sentiment_analysis.get('normalized_score', 50.0)
         trend_score = data_analysis.get('trend_score', 50.0)
         total_articles = sentiment_analysis.get('total_articles', 0)
+        timeframe_days = trading_decision.get('timeframe_days', 30)
         
         # Get portfolio adjustment information
         portfolio_adjustments = trading_decision.get('portfolio_adjustments', {})
@@ -150,6 +151,16 @@ class EmailService:
         position_rationale = portfolio_adjustments.get('position_change_rationale', '')
         rebalancing_impact = portfolio_adjustments.get('rebalancing_impact', '')
         risk_impact = portfolio_adjustments.get('risk_impact', '')
+        total_portfolio_value = portfolio_adjustments.get('total_portfolio_value', 'N/A')
+        
+        # Check if we have meaningful portfolio data
+        has_portfolio_data = (
+            portfolio_adjustments and 
+            position_action != 'N/A' and 
+            total_portfolio_value != 'N/A' and 
+            total_portfolio_value != 0 and
+            str(total_portfolio_value).strip() != ''
+        )
         
         # Create prompt for Gemini
         prompt = f"""
@@ -163,7 +174,14 @@ class EmailService:
         - Price Change: {price_change:+.2f}%
         - Sentiment Score: {sentiment_score:.1f}/100 (based on {total_articles} news articles)
         - Technical Trend Score: {trend_score:.1f}/100
-        - Analysis Reasoning: {reasoning}
+        - Trading Timeframe: {timeframe_days} days
+        - Timeframe Category: {trading_decision.get('timeframe_analysis', {}).get('timeframe_category', 'MEDIUM')}
+        - Expected Holding Period: {trading_decision.get('timeframe_analysis', {}).get('expected_holding_period', f'{timeframe_days} days')}
+        - Analysis Reasoning: {reasoning}"""
+
+        # Only include portfolio information if we have meaningful data
+        if has_portfolio_data:
+            prompt += f"""
         
         Portfolio Position Instructions:
         - Position Action: {position_action}
@@ -171,31 +189,47 @@ class EmailService:
         - Position Rationale: {position_rationale}
         - Portfolio Impact: {rebalancing_impact}
         - Risk Impact: {risk_impact}
+        - Current Portfolio Value: ${total_portfolio_value}"""
+        
+        prompt += f"""
         
         Requirements:
         1. Write as a client placing an actual trading order with their broker
         2. Address Ujjwal professionally but personally
         3. Be direct and clear about the order you want to place
         4. Include specific order details and reasoning
-        5. ALWAYS reference current portfolio context and holdings
-        6. Include recommendations for selling existing positions if it makes sense
-        7. Explain how this trade fits into overall portfolio strategy
-        8. Sound confident but not arrogant
-        9. Keep it concise and actionable
-        10. End with "Best regards, FinSys acting on behalf of Ujjwal"
-        11. Use natural, conversational language
-        12. Make it sound like a real client-broker communication
-        13. Comment on portfolio diversification and risk management
-        14. EXPLAIN WHY the decision was made - include specific reasons based on the analysis
-        15. Reference the key metrics (sentiment score, trend score, price movement) in your explanation
-        16. Make the decision rationale clear and compelling
+        5. Sound confident but not arrogant
+        6. Keep it concise and actionable
+        7. End with "Best regards, FinSys acting on behalf of Ujjwal"
+        8. Use natural, conversational language
+        9. Make it sound like a real client-broker communication
+        10. EXPLAIN WHY the decision was made - include specific reasons based on the analysis
+        11. Reference the key metrics (sentiment score, trend score, price movement) in your explanation
+        12. Make the decision rationale clear and compelling
+        13. EMPHASIZE the {timeframe_days}-day trading timeframe and how it affects the strategy
+        14. Explain why this timeframe is optimal for the current market conditions
+        15. Include timeframe-specific risk considerations and exit strategy"""
+
+        # Add portfolio-specific requirements only if we have portfolio data
+        if has_portfolio_data:
+            prompt += f"""
+        16. ALWAYS reference current portfolio context and holdings
+        17. Include recommendations for selling existing positions if it makes sense
+        18. Explain how this trade fits into overall portfolio strategy
+        19. Comment on portfolio diversification and risk management"""
+        else:
+            prompt += f"""
+        16. Focus on the standalone trade opportunity without portfolio context
+        17. Emphasize the individual asset's potential and market conditions"""
+        
+        prompt += f"""
         
         Write the email body only (no subject line):
         """
         
         try:
-            # Use Gemini to generate the email content
-            response = await self.gemini_advisor.model.generate_content_async(prompt)
+            # Use Gemini to generate the email content (synchronous call to avoid event loop issues)
+            response = self.gemini_advisor.model.generate_content(prompt)
             return response.text.strip()
         except Exception as e:
             logger.error(f"Error generating email content with Gemini: {e}")
@@ -216,8 +250,21 @@ class EmailService:
         sentiment_score = sentiment_analysis.get('normalized_score', 50.0)
         trend_score = data_analysis.get('trend_score', 50.0)
         total_articles = sentiment_analysis.get('total_articles', 0)
+        timeframe_days = trading_decision.get('timeframe_days', 30)
         
-        return f"""
+        # Check if we have meaningful portfolio data for fallback email
+        portfolio_adjustments = trading_decision.get('portfolio_adjustments', {})
+        total_portfolio_value = portfolio_adjustments.get('total_portfolio_value', 'N/A')
+        
+        has_portfolio_data = (
+            portfolio_adjustments and 
+            total_portfolio_value != 'N/A' and 
+            total_portfolio_value != 0 and
+            str(total_portfolio_value).strip() != ''
+        )
+        
+        # Build email body
+        email_body = f"""
 Dear Ujjwal,
 
 I hope this email finds you well. I wanted to reach out with an important trading recommendation for {commodity}.
@@ -235,18 +282,29 @@ After conducting a comprehensive analysis of market sentiment and technical indi
 • Technical Trend Score: {trend_score:.1f}/100
 • Risk Level: {trading_decision.get('risk_level', 'MEDIUM')}
 • Investment Horizon: {trading_decision.get('time_horizon', 'MEDIUM')}
+• Trading Timeframe: {timeframe_days} days
+• Timeframe Category: {trading_decision.get('timeframe_analysis', {}).get('timeframe_category', 'MEDIUM')}
+• Expected Holding Period: {trading_decision.get('timeframe_analysis', {}).get('expected_holding_period', f'{timeframe_days} days')}"""
+
+        # Only add portfolio section if we have meaningful portfolio data
+        if has_portfolio_data:
+            email_body += f"""
 
 === PORTFOLIO CONTEXT & RECOMMENDATIONS ===
-• Current Portfolio Value: ${trading_decision.get('portfolio_adjustments', {}).get('total_portfolio_value', 'N/A')}
-• Diversification Score: {trading_decision.get('portfolio_adjustments', {}).get('diversification_score', 'N/A')}/100
-• Asset Exposure: {trading_decision.get('portfolio_adjustments', {}).get('asset_exposure', 'N/A')}
-• Recommended Actions: {trading_decision.get('portfolio_adjustments', {}).get('sell_recommendations', 'Consider current holdings for rebalancing')}
+• Current Portfolio Value: ${total_portfolio_value}
+• Diversification Score: {portfolio_adjustments.get('diversification_score', 'N/A')}/100
+• Asset Exposure: {portfolio_adjustments.get('asset_exposure', 'N/A')}
+• Recommended Actions: {portfolio_adjustments.get('sell_recommendations', 'Consider current holdings for rebalancing')}"""
+
+        email_body += f"""
 
 Please review the detailed analysis and let me know if you have any questions or need clarification on the recommendation.
 
 Best regards,
 FinSys acting on behalf of Ujjwal
 """
+        
+        return email_body
     
     async def _create_email_body(self, trading_decision: Dict, sentiment_analysis: Dict, 
                           data_analysis: Dict) -> str:
@@ -259,7 +317,7 @@ FinSys acting on behalf of Ujjwal
         # Generate human-like email content using Gemini
         if self.gemini_advisor:
             try:
-                gemini_body = await self._generate_human_email_content(
+                gemini_body = self._generate_human_email_content(
                     trading_decision, sentiment_analysis, data_analysis
                 )
             except Exception as e:
@@ -292,15 +350,25 @@ Current Market Price: ${current_price:.4f}
 Price Movement: {price_change:+.2f}%
 """
         
-        # Add portfolio position recommendations section
+        # Add portfolio position recommendations section only if portfolio data is available
         portfolio_adjustments = trading_decision.get('portfolio_adjustments', {})
         position_action = portfolio_adjustments.get('current_position_action', 'N/A')
         recommended_size = portfolio_adjustments.get('recommended_position_size', 'N/A')
         position_rationale = portfolio_adjustments.get('position_change_rationale', '')
         rebalancing_impact = portfolio_adjustments.get('rebalancing_impact', '')
         risk_impact = portfolio_adjustments.get('risk_impact', '')
+        total_portfolio_value = portfolio_adjustments.get('total_portfolio_value', 'N/A')
         
-        if portfolio_adjustments and position_action != 'N/A':
+        # Check if we have meaningful portfolio data
+        has_portfolio_data = (
+            portfolio_adjustments and 
+            position_action != 'N/A' and 
+            total_portfolio_value != 'N/A' and 
+            total_portfolio_value != 0 and
+            str(total_portfolio_value).strip() != ''
+        )
+        
+        if has_portfolio_data:
             email_body += f"""
 
 === PORTFOLIO POSITION INSTRUCTIONS ===
@@ -311,7 +379,7 @@ Price Movement: {price_change:+.2f}%
 • Risk Management: {risk_impact}
 
 === PORTFOLIO CONTEXT & RECOMMENDATIONS ===
-• Current Portfolio Value: ${portfolio_adjustments.get('total_portfolio_value', 'N/A')}
+• Current Portfolio Value: ${total_portfolio_value}
 • Diversification Score: {portfolio_adjustments.get('diversification_score', 'N/A')}/100
 • Asset Exposure: {portfolio_adjustments.get('asset_exposure', 'N/A')}
 • Recommended Actions: {portfolio_adjustments.get('sell_recommendations', 'Consider current holdings for rebalancing')}

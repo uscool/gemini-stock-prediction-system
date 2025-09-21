@@ -271,7 +271,8 @@ class GeminiCommodityAdvisor:
         prompt = f"""
 You are an expert commodity trading advisor analyzing {commodity.upper()} for investment decisions.
 
-ANALYSIS PERIOD: {timeframe_days} days (with {analysis_depth} days of historical context)
+TRADING TIMEFRAME: {timeframe_days} days (with {analysis_depth} days of historical context)
+CRITICAL: All recommendations must be optimized for this specific {timeframe_days}-day trading timeframe.
 
 SENTIMENT ANALYSIS:
 - Sentiment Score: {sentiment_score}/100 (where 0=very negative, 50=neutral, 100=very positive)
@@ -319,8 +320,15 @@ TASK: Provide a comprehensive trading recommendation in the following JSON forma
     "position_size": "SMALL" | "MEDIUM" | "LARGE",
     "time_horizon": "SHORT" | "MEDIUM" | "LONG",
     "risk_level": "LOW" | "MEDIUM" | "HIGH",
+    "timeframe_analysis": {{
+        "timeframe_category": "SHORT" | "MEDIUM" | "LONG",
+        "timeframe_optimization": "how the strategy is optimized for {timeframe_days}-day timeframe",
+        "expected_holding_period": "expected days to hold position",
+        "timeframe_risks": "specific risks for this timeframe",
+        "exit_strategy": "when and how to exit the position"
+    }},
     "key_factors": ["list", "of", "key", "decision", "factors"],
-    "reasoning": "detailed explanation of the decision",
+    "reasoning": "detailed explanation of the decision including timeframe considerations",
     "risks": "key risks to consider",
     "market_outlook": "overall market perspective for this commodity",
     "portfolio_adjustments": {{
@@ -349,21 +357,28 @@ GUIDELINES:
 8. Ensure all recommendations are financially sound and well-reasoned
 9. Conservative users should get safer recommendations with tighter stops
 10. Aggressive users can handle higher risk/reward scenarios
-11. PORTFOLIO-AWARE DECISIONS: Consider existing positions and portfolio diversification
-12. If user has existing position: consider whether to add, reduce, or maintain
-13. If user has no position: consider portfolio diversification impact of new position
-14. Position sizing should be appropriate for total portfolio value
-15. Email should reference current portfolio context and specific trade rationale
-16. POSITION ADJUSTMENT RECOMMENDATIONS: Always provide specific position adjustment advice
-17. For existing positions: recommend INCREASE, DECREASE, MAINTAIN, or CLOSE based on analysis
-18. For new positions: recommend appropriate portfolio percentage allocation
-19. Consider portfolio rebalancing needs and risk impact of position changes
-20. Provide clear rationale for all position adjustment recommendations
-21. SELL RECOMMENDATIONS: Always suggest which existing positions to sell to fund new trades
-22. Consider selling underperforming or overexposed positions to fund better opportunities
-23. Recommend selling positions that conflict with new trade thesis or risk management
-24. Include specific asset names and quantities to sell when recommending position changes
-25. Explain the rationale for sell recommendations in portfolio context
+11. TIMEFRAME-SPECIFIC CONSIDERATIONS: Adjust strategy based on {timeframe_days}-day timeframe
+12. For SHORT timeframes (1-7 days): Focus on momentum, news impact, and quick technical signals
+13. For MEDIUM timeframes (8-30 days): Balance technical trends with fundamental sentiment
+14. For LONG timeframes (31+ days): Emphasize fundamental analysis and longer-term trends
+15. Position sizing should reflect timeframe risk - shorter timeframes need smaller positions
+16. Stop-loss levels should be tighter for shorter timeframes, wider for longer timeframes
+17. PORTFOLIO-AWARE DECISIONS: Consider existing positions and portfolio diversification
+18. If user has existing position: consider whether to add, reduce, or maintain
+19. If user has no position: consider portfolio diversification impact of new position
+20. Position sizing should be appropriate for total portfolio value
+21. Email should reference current portfolio context and specific trade rationale
+22. POSITION ADJUSTMENT RECOMMENDATIONS: Always provide specific position adjustment advice
+23. For existing positions: recommend INCREASE, DECREASE, MAINTAIN, or CLOSE based on analysis
+24. For new positions: recommend appropriate portfolio percentage allocation
+25. Consider portfolio rebalancing needs and risk impact of position changes
+26. Provide clear rationale for all position adjustment recommendations
+27. SELL RECOMMENDATIONS: Always suggest which existing positions to sell to fund new trades
+28. Consider selling underperforming or overexposed positions to fund better opportunities
+29. Recommend selling positions that conflict with new trade thesis or risk management
+30. Include specific asset names and quantities to sell when recommending position changes
+31. Explain the rationale for sell recommendations in portfolio context
+32. Ensure no placeholders are used!
 
 Respond with ONLY the JSON object, no additional text.
 """
@@ -664,7 +679,13 @@ SELL RECOMMENDATIONS GUIDANCE:
                 market_context = "commodity markets"
             elif asset.lower() in config.STOCK_SYMBOLS:
                 asset_type = "stock"
-                market_context = "stock markets and equity analysis"
+                # Check if it's an Indian stock
+                indian_stocks = ['tata', 'reliance', 'infosys', 'tcs', 'hdfc', 'icici', 'sbi', 'bharti', 
+                               'adani', 'wipro', 'hcl', 'maruti', 'bajaj', 'mahindra', 'itc', 'hindalco']
+                if any(indian_stock in asset.lower() for indian_stock in indian_stocks):
+                    market_context = "Indian stock markets (NSE, BSE, Sensex, Nifty) and equity analysis"
+                else:
+                    market_context = "stock markets and equity analysis"
             else:
                 asset_type = "unknown"
                 market_context = "financial markets"
@@ -696,6 +717,8 @@ GUIDELINES FOR {asset_type.upper()}S:
 - Include terms that traders and analysts would search for
 - For stocks: Include company name, ticker symbol, sector terms
 - For commodities: Include supply/demand factors, seasonal patterns
+- For Indian stocks: Include NSE, BSE, Sensex, Nifty, Indian market terms
+- For Indian markets: Include terms like "Indian stock market", "Mumbai stock exchange", "Indian equity"
 
 Return exactly 8-12 highly relevant search terms as a JSON array.
 Focus on terms that would appear in headlines and articles about market-moving events.
@@ -773,6 +796,16 @@ Respond with ONLY the JSON array, no additional text.
                 f'{asset} revenue growth', f'{asset} stock forecast', f'{asset} market cap',
                 f'{asset} investment outlook'
             ])
+            
+            # Add Indian market-specific terms for Indian stocks
+            indian_stocks = ['tata', 'reliance', 'infosys', 'tcs', 'hdfc', 'icici', 'sbi', 'bharti', 
+                           'adani', 'wipro', 'hcl', 'maruti', 'bajaj', 'mahindra', 'itc', 'hindalco']
+            if any(indian_stock in asset.lower() for indian_stock in indian_stocks):
+                base_terms.extend([
+                    f'{asset} NSE BSE', f'{asset} Indian stock market', f'{asset} Sensex Nifty',
+                    f'{asset} Indian equity', f'{asset} Mumbai stock exchange', f'{asset} Indian shares',
+                    f'{asset} Indian market analysis', f'{asset} Indian stock news'
+                ])
         else:
             # Commodity fallback terms (existing logic)
             pass
@@ -1190,6 +1223,7 @@ GUIDELINES:
 8. Provide specific percentage allocations where relevant
 9. Consider correlation between holdings
 10. Factor in transaction costs for rebalancing suggestions
+11. Be extremely objective, do not be biased towards any particular asset or any action
 
 Generate the analysis now:
 """

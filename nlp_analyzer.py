@@ -346,3 +346,27 @@ class CommodityNLPAnalyzer:
             'score': score,
             'method': 'fallback'
         }
+    
+    async def analyze_sentiment_async(self, asset: str, timeframe_days: int = 30) -> Dict:
+        """
+        Analyze sentiment for an asset by collecting articles and performing sentiment analysis
+        
+        Args:
+            asset: Asset name or symbol
+            timeframe_days: Number of days to look back for news
+            
+        Returns:
+            Dict containing sentiment analysis results
+        """
+        try:
+            # Collect articles for the asset
+            articles = await self._collect_asset_news(asset, timeframe_days)
+            
+            # Analyze sentiment of the collected articles
+            sentiment_result = await self.analyze_asset_sentiment(asset, articles)
+            
+            return sentiment_result
+            
+        except Exception as e:
+            logger.error(f"Error in analyze_sentiment_async for {asset}: {e}")
+            return self._create_error_sentiment_result(asset, str(e))
