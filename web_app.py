@@ -806,6 +806,54 @@ def portfolio_analysis(portfolio_id):
         logger.error(f"Error getting portfolio analysis: {e}")
         return jsonify({'error': str(e)}), 500
 
+@app.route('/api/portfolios/<int:portfolio_id>/comprehensive-analysis', methods=['POST'])
+@login_required
+def comprehensive_portfolio_analysis(portfolio_id):
+    """Perform comprehensive portfolio analysis using Gemini AI with yfinance data and sentiment analysis"""
+    try:
+        data = request.get_json() or {}
+        timeframe_days = data.get('timeframe_days', 30)
+        
+        # Verify portfolio ownership
+        portfolio = Portfolio.query.filter_by(
+            id=portfolio_id, 
+            user_id=current_user.id, 
+            is_active=True
+        ).first()
+        
+        if not portfolio:
+            return jsonify({'error': 'Portfolio not found'}), 404
+        
+        # Get user email for analysis
+        user_email = current_user.email
+        
+        # Run comprehensive analysis
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        
+        try:
+            result = loop.run_until_complete(
+                analyzer.gemini_advisor.analyze_portfolio(user_email, portfolio_id, timeframe_days)
+            )
+            
+            if result.get('success'):
+                return jsonify({
+                    'success': True,
+                    'data': result
+                })
+            else:
+                return jsonify({
+                    'success': False,
+                    'error': result.get('error', 'Analysis failed')
+                }), 500
+                
+        finally:
+            loop.close()
+            
+    except Exception as e:
+        logger.error(f"Error in comprehensive portfolio analysis: {e}")
+        return jsonify({'error': str(e)}), 500
+
 # Scheduling API endpoints
 @app.route('/api/schedules', methods=['GET'])
 def get_schedules():

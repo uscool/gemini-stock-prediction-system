@@ -11,6 +11,9 @@ document.addEventListener('DOMContentLoaded', function() {
     loadSchedulerStatus();
     loadSchedules();
     checkUserAuthentication();
+    
+    // Show Analysis tab by default
+    showAnalysisTab();
 });
 
 // Load available assets from API
@@ -1000,13 +1003,17 @@ function getRiskToleranceDisplay(riskTolerance) {
 
 // Tab switching functions
 function showAnalysisTab() {
+    // Hide all tabs
+    document.getElementById('analysisTab').classList.remove('d-none');
     document.getElementById('schedulerTab').classList.add('d-none');
-    document.querySelector('.container .row:first-child').classList.remove('d-none');
+    document.getElementById('portfolioTab').classList.add('d-none');
 }
 
 function showSchedulerTab() {
-    document.querySelector('.container .row:first-child').classList.add('d-none');
+    // Hide all tabs
+    document.getElementById('analysisTab').classList.add('d-none');
     document.getElementById('schedulerTab').classList.remove('d-none');
+    document.getElementById('portfolioTab').classList.add('d-none');
     loadSchedulerStatus();
     loadSchedules();
 }
@@ -1367,8 +1374,9 @@ function showLoginMenu() {
 
 // Tab switching functions
 function showPortfolioTab() {
+    // Hide all tabs
+    document.getElementById('analysisTab').classList.add('d-none');
     document.getElementById('schedulerTab').classList.add('d-none');
-    document.querySelector('.container .row:first-child').classList.add('d-none');
     document.getElementById('portfolioTab').classList.remove('d-none');
     
     if (currentUser) {
@@ -1881,19 +1889,310 @@ async function analyzePortfolio() {
         return;
     }
     
+    // Show comprehensive analysis instead of basic analysis
+    showComprehensiveAnalysis();
+}
+
+// Show comprehensive portfolio analysis interface
+function showComprehensiveAnalysis() {
+    if (!currentPortfolio) {
+        showError('Please select a portfolio first');
+        return;
+    }
+    
+    document.getElementById('portfolioDetails').classList.add('d-none');
+    document.getElementById('portfolioAnalysis').classList.remove('d-none');
+    
+    // Reset analysis results
+    document.getElementById('analysisResults').innerHTML = `
+        <div class="text-center text-muted">
+            <i class="fas fa-chart-line fa-3x mb-3"></i>
+            <p>Click "Run Analysis" to get comprehensive AI-powered portfolio insights</p>
+            <p class="small">This will analyze all holdings using real-time market data and sentiment analysis</p>
+        </div>
+    `;
+}
+
+// Run comprehensive portfolio analysis
+async function runComprehensiveAnalysis() {
+    if (!currentPortfolio) {
+        showError('Please select a portfolio first');
+        return;
+    }
+    
+    const timeframe = document.getElementById('analysisTimeframe').value;
+    
+    // Show loading status
+    document.getElementById('analysisStatus').classList.remove('d-none');
+    document.getElementById('analysisStatusText').textContent = 'Running comprehensive portfolio analysis...';
+    
     try {
-        const response = await fetch(`/api/portfolios/${currentPortfolio.id}/analysis`);
+        const token = await getCSRFToken();
+        const response = await fetch(`/api/portfolios/${currentPortfolio.id}/comprehensive-analysis`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': token
+            },
+            body: JSON.stringify({
+                timeframe_days: parseInt(timeframe)
+            })
+        });
+        
         const data = await response.json();
         
         if (data.success) {
-            showPortfolioAnalysis(data.data);
+            displayComprehensiveAnalysis(data.data);
+            showSuccess('Comprehensive portfolio analysis completed!');
         } else {
-            showError('Error loading portfolio analysis');
+            showError(data.error || 'Analysis failed');
         }
     } catch (error) {
-        console.error('Error analyzing portfolio:', error);
-        showError('Error analyzing portfolio: ' + error.message);
+        console.error('Error running comprehensive analysis:', error);
+        showError('Error running analysis: ' + error.message);
+    } finally {
+        document.getElementById('analysisStatus').classList.add('d-none');
     }
+}
+
+// Display comprehensive analysis results
+function displayComprehensiveAnalysis(analysisData) {
+    const analysisEl = document.getElementById('analysisResults');
+    
+    if (!analysisData || !analysisData.analysis) {
+        analysisEl.innerHTML = `
+            <div class="alert alert-warning">
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                No analysis data available. Please try again.
+            </div>
+        `;
+        return;
+    }
+    
+    const analysis = analysisData.analysis;
+    const portfolioContext = analysisData.portfolio_context;
+    const holdingsData = analysisData.holdings_data;
+    const sentimentData = analysisData.sentiment_data;
+    
+    let html = `
+        <div class="comprehensive-analysis">
+            <!-- Executive Summary -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h6><i class="fas fa-crown me-2"></i>Executive Summary</h6>
+                </div>
+                <div class="card-body">
+                    <p class="lead">${analysis.executive_summary || 'Analysis completed successfully.'}</p>
+                </div>
+            </div>
+            
+            <!-- Overall Assessment -->
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <h5 class="card-title text-${getHealthColor(analysis.overall_assessment?.portfolio_health)}">
+                                ${analysis.overall_assessment?.portfolio_health || 'N/A'}
+                            </h5>
+                            <p class="card-text small">Portfolio Health</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <h5 class="card-title text-${getRiskColor(analysis.overall_assessment?.risk_level)}">
+                                ${analysis.overall_assessment?.risk_level || 'N/A'}
+                            </h5>
+                            <p class="card-text small">Risk Level</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <h5 class="card-title">${analysis.overall_assessment?.diversification_score || 'N/A'}/100</h5>
+                            <p class="card-text small">Diversification Score</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <h5 class="card-title text-${getGradeColor(analysis.overall_assessment?.performance_rating)}">
+                                ${analysis.overall_assessment?.performance_rating || 'N/A'}
+                            </h5>
+                            <p class="card-text small">Performance Rating</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Key Metrics -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h6><i class="fas fa-chart-bar me-2"></i>Key Metrics</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p><strong>Total Return:</strong> ${analysis.key_metrics?.total_return_percentage || 'N/A'}</p>
+                            <p><strong>Best Performer:</strong> ${analysis.key_metrics?.best_performer || 'N/A'}</p>
+                            <p><strong>Worst Performer:</strong> ${analysis.key_metrics?.worst_performer || 'N/A'}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>Most Volatile:</strong> ${analysis.key_metrics?.most_volatile || 'N/A'}</p>
+                            <p><strong>Least Volatile:</strong> ${analysis.key_metrics?.least_volatile || 'N/A'}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Holdings Analysis -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h6><i class="fas fa-list me-2"></i>Holdings Analysis</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6 class="text-success">Strong Holds</h6>
+                            <ul class="list-group list-group-flush">
+                                ${(analysis.individual_holdings_analysis?.strong_holds || []).map(asset => 
+                                    `<li class="list-group-item">${asset}</li>`
+                                ).join('')}
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="text-warning">Weak Holds</h6>
+                            <ul class="list-group list-group-flush">
+                                ${(analysis.individual_holdings_analysis?.weak_holds || []).map(asset => 
+                                    `<li class="list-group-item">${asset}</li>`
+                                ).join('')}
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Recommendations -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h6><i class="fas fa-lightbulb me-2"></i>Recommendations</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6 class="text-primary">Immediate Actions</h6>
+                            <ul class="list-group list-group-flush">
+                                ${(analysis.recommendations?.immediate_actions || []).map(action => 
+                                    `<li class="list-group-item">${action}</li>`
+                                ).join('')}
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="text-info">New Investments</h6>
+                            <ul class="list-group list-group-flush">
+                                ${(analysis.recommendations?.new_investments || []).map(investment => 
+                                    `<li class="list-group-item">${investment}</li>`
+                                ).join('')}
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Detailed Holdings Data -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h6><i class="fas fa-table me-2"></i>Detailed Holdings Data</h6>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Asset</th>
+                                    <th>Current Price</th>
+                                    <th>Price Change</th>
+                                    <th>Volatility</th>
+                                    <th>Sentiment</th>
+                                    <th>News Articles</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${Object.keys(holdingsData).map(symbol => {
+                                    const holding = holdingsData[symbol];
+                                    const sentiment = sentimentData[symbol];
+                                    return `
+                                        <tr>
+                                            <td><strong>${symbol}</strong></td>
+                                            <td>$${holding.current_price?.toFixed(2) || 'N/A'}</td>
+                                            <td class="${holding.price_change_percentage >= 0 ? 'text-success' : 'text-danger'}">
+                                                ${holding.price_change_percentage?.toFixed(2) || 'N/A'}%
+                                            </td>
+                                            <td>${holding.volatility?.toFixed(2) || 'N/A'}%</td>
+                                            <td>
+                                                <span class="badge bg-${getSentimentColor(sentiment?.sentiment_score)}">
+                                                    ${sentiment?.sentiment_score?.toFixed(1) || 'N/A'}/100
+                                                </span>
+                                            </td>
+                                            <td>${sentiment?.total_articles || 0}</td>
+                                        </tr>
+                                    `;
+                                }).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    analysisEl.innerHTML = html;
+}
+
+// Hide portfolio analysis
+function hidePortfolioAnalysis() {
+    document.getElementById('portfolioAnalysis').classList.add('d-none');
+    document.getElementById('portfolioDetails').classList.remove('d-none');
+}
+
+// Helper functions for styling
+function getHealthColor(health) {
+    switch(health) {
+        case 'EXCELLENT': return 'success';
+        case 'GOOD': return 'primary';
+        case 'FAIR': return 'warning';
+        case 'POOR': return 'danger';
+        default: return 'secondary';
+    }
+}
+
+function getRiskColor(risk) {
+    switch(risk) {
+        case 'LOW': return 'success';
+        case 'MEDIUM': return 'warning';
+        case 'HIGH': return 'danger';
+        default: return 'secondary';
+    }
+}
+
+function getGradeColor(grade) {
+    switch(grade) {
+        case 'A': return 'success';
+        case 'B': return 'primary';
+        case 'C': return 'warning';
+        case 'D': return 'danger';
+        case 'F': return 'danger';
+        default: return 'secondary';
+    }
+}
+
+function getSentimentColor(score) {
+    if (score >= 70) return 'success';
+    if (score >= 50) return 'warning';
+    return 'danger';
 }
 
 function showPortfolioAnalysis(analysisData) {

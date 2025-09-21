@@ -59,13 +59,14 @@ class GeminiCommodityAdvisor:
             logger.error(f"Error initializing Gemini AI: {e}")
             raise
     
-    def get_portfolio_context(self, user_email: str, asset_symbol: str = None) -> Dict:
+    def get_portfolio_context(self, user_email: str, asset_symbol: str = None, portfolio_id: int = None) -> Dict:
         """
-        Get portfolio context for a user, optionally filtered by asset
+        Get portfolio context for a user, optionally filtered by asset or portfolio
         
         Args:
             user_email: User's email address
             asset_symbol: Optional asset symbol to filter by
+            portfolio_id: Optional portfolio ID to filter by
             
         Returns:
             Dict containing portfolio context
@@ -77,11 +78,16 @@ class GeminiCommodityAdvisor:
                 logger.warning(f"User not found for email: {user_email}")
                 return {"error": "User not found"}
             
-            # Get all active portfolios for the user
-            portfolios = Portfolio.query.filter_by(
+            # Get portfolios for the user (filter by portfolio_id if provided)
+            query = Portfolio.query.filter_by(
                 user_id=user.id, 
                 is_active=True
-            ).all()
+            )
+            
+            if portfolio_id:
+                query = query.filter_by(id=portfolio_id)
+            
+            portfolios = query.all()
             
             if not portfolios:
                 logger.info(f"No portfolios found for user: {user_email}")
@@ -866,6 +872,7 @@ TASK: Provide a comprehensive market summary in the following JSON format:
 
 Provide strategic insights based on the individual commodity analyses.
 Respond with ONLY the JSON object, no additional text.
+Take into account general market trends and macroeconomic factors for the commodity.
 """
         
         return prompt
@@ -920,3 +927,331 @@ Respond with ONLY the JSON object, no additional text.
                 'error': f'Parsing error: {str(e)}',
                 'market_summary': 'Unable to generate market summary due to parsing error'
             }
+    
+    async def analyze_portfolio(self, user_email: str, portfolio_id: int, timeframe_days: int = 30) -> Dict:
+        """
+        Perform comprehensive portfolio analysis using Gemini AI
+        
+        Args:
+            user_email: User's email address
+            portfolio_id: Portfolio ID to analyze
+            timeframe_days: Analysis timeframe in days
+            
+        Returns:
+            Dict containing comprehensive portfolio analysis
+        """
+        try:
+            logger.info(f"Starting portfolio analysis for user {user_email}, portfolio {portfolio_id}")
+            
+            # Get portfolio context
+            portfolio_context = self.get_portfolio_context(user_email, portfolio_id=portfolio_id)
+            if "error" in portfolio_context:
+                logger.error(f"Could not get portfolio context: {portfolio_context['error']}")
+                return {
+                    'success': False,
+                    'error': f"Could not get portfolio context: {portfolio_context['error']}"
+                }
+            
+            # Extract holdings from portfolio context
+            all_holdings = []
+            for portfolio in portfolio_context.get('portfolios', []):
+                all_holdings.extend(portfolio.get('holdings', []))
+            
+            if not all_holdings:
+                return {
+                    'success': False,
+                    'error': 'No holdings found in portfolio'
+                }
+            
+            # Collect data for all holdings
+            holdings_data = {}
+            sentiment_data = {}
+            
+            for holding in all_holdings:
+                asset_symbol = holding['asset_symbol']
+                logger.info(f"Collecting data for {asset_symbol}")
+                
+                # Get yfinance data
+                try:
+                    import yfinance as yf
+                    ticker = yf.Ticker(asset_symbol)
+                    hist = ticker.history(period=f"{timeframe_days}d")
+                    
+                    if not hist.empty:
+                        current_price = hist['Close'].iloc[-1]
+                        price_change = ((current_price - hist['Close'].iloc[0]) / hist['Close'].iloc[0]) * 100
+                        volume_avg = hist['Volume'].mean()
+                        
+                        holdings_data[asset_symbol] = {
+                            'current_price': float(current_price),
+                            'price_change_percentage': float(price_change),
+                            'volume_avg': float(volume_avg),
+                            'high_52w': float(hist['High'].max()),
+                            'low_52w': float(hist['Low'].min()),
+                            'volatility': float(hist['Close'].pct_change().std() * 100),
+                            'data_points': len(hist)
+                        }
+                    else:
+                        holdings_data[asset_symbol] = {
+                            'error': 'No data available from yfinance'
+                        }
+                except Exception as e:
+                    logger.error(f"Error fetching yfinance data for {asset_symbol}: {e}")
+                    holdings_data[asset_symbol] = {
+                        'error': f'Data fetch error: {str(e)}'
+                    }
+                
+                # Get sentiment analysis (simplified for portfolio analysis)
+                try:
+                    from nlp_analyzer import CommodityNLPAnalyzer
+                    nlp_analyzer = CommodityNLPAnalyzer()
+                    
+                    # Get asset name for sentiment analysis
+                    asset_name = holding.get('asset_name', asset_symbol)
+                    sentiment_result = await nlp_analyzer.analyze_sentiment_async(asset_name, timeframe_days)
+                    
+                    sentiment_data[asset_symbol] = {
+                        'sentiment_score': sentiment_result.get('normalized_score', 50.0),
+                        'total_articles': sentiment_result.get('total_articles', 0),
+                        'sentiment_label': sentiment_result.get('sentiment_label', 'neutral')
+                    }
+                except Exception as e:
+                    logger.error(f"Error getting sentiment for {asset_symbol}: {e}")
+                    sentiment_data[asset_symbol] = {
+                        'sentiment_score': 50.0,
+                        'total_articles': 0,
+                        'sentiment_label': 'neutral',
+                        'error': f'Sentiment error: {str(e)}'
+                    }
+            
+            # Generate comprehensive portfolio analysis using Gemini
+            analysis_result = await self._generate_portfolio_analysis(
+                portfolio_context, holdings_data, sentiment_data, timeframe_days
+            )
+            
+            return {
+                'success': True,
+                'portfolio_id': portfolio_id,
+                'analysis_date': datetime.now().isoformat(),
+                'timeframe_days': timeframe_days,
+                'holdings_data': holdings_data,
+                'sentiment_data': sentiment_data,
+                'portfolio_context': portfolio_context,
+                'analysis': analysis_result
+            }
+            
+        except Exception as e:
+            logger.error(f"Error in portfolio analysis: {e}")
+            return {
+                'success': False,
+                'error': f'Portfolio analysis failed: {str(e)}'
+            }
+    
+    async def _generate_portfolio_analysis(self, portfolio_context: Dict, holdings_data: Dict, 
+                                         sentiment_data: Dict, timeframe_days: int) -> Dict:
+        """Generate comprehensive portfolio analysis using Gemini AI"""
+        try:
+            # Create comprehensive prompt for portfolio analysis
+            prompt = self._create_portfolio_analysis_prompt(
+                portfolio_context, holdings_data, sentiment_data, timeframe_days
+            )
+            
+            logger.info("Generating portfolio analysis with Gemini AI")
+            response = self.model.generate_content(prompt)
+            
+            if not response:
+                return self._create_fallback_portfolio_analysis(portfolio_context, holdings_data, sentiment_data)
+            
+            # Parse the response
+            analysis_result = self._parse_portfolio_analysis_response(response.text)
+            
+            return analysis_result
+            
+        except Exception as e:
+            logger.error(f"Error generating portfolio analysis: {e}")
+            return self._create_fallback_portfolio_analysis(portfolio_context, holdings_data, sentiment_data)
+    
+    def _create_portfolio_analysis_prompt(self, portfolio_context: Dict, holdings_data: Dict, 
+                                        sentiment_data: Dict, timeframe_days: int) -> str:
+        """Create comprehensive prompt for portfolio analysis"""
+        
+        # Portfolio summary
+        total_value = portfolio_context.get('total_value', 0)
+        total_cost = portfolio_context.get('total_cost', 0)
+        total_gain_loss = portfolio_context.get('total_gain_loss', 0)
+        # Calculate total holdings count
+        holdings_count = 0
+        for portfolio in portfolio_context.get('portfolios', []):
+            holdings_count += len(portfolio.get('holdings', []))
+        
+        prompt = f"""
+You are a professional financial advisor analyzing a complete investment portfolio. Provide a comprehensive analysis in JSON format.
+
+PORTFOLIO OVERVIEW:
+- Total Portfolio Value: ${total_value:,.2f}
+- Total Cost Basis: ${total_cost:,.2f}
+- Total Gain/Loss: ${total_gain_loss:,.2f} ({((total_gain_loss/total_cost)*100 if total_cost > 0 else 0):.2f}%)
+- Number of Holdings: {holdings_count}
+- Analysis Timeframe: {timeframe_days} days
+
+HOLDINGS DETAILED ANALYSIS:
+"""
+        
+        # Add detailed analysis for each holding
+        all_holdings = []
+        for portfolio in portfolio_context.get('portfolios', []):
+            all_holdings.extend(portfolio.get('holdings', []))
+        
+        for holding in all_holdings:
+            asset_symbol = holding['asset_symbol']
+            asset_name = holding.get('asset_name', asset_symbol)
+            quantity = holding.get('quantity', 0)
+            avg_cost = holding.get('avg_cost', 0)
+            current_value = holding.get('current_value', 0)
+            gain_loss = holding.get('gain_loss', 0)
+            gain_loss_pct = holding.get('gain_loss_percentage', 0)
+            
+            # Get market data
+            market_data = holdings_data.get(asset_symbol, {})
+            sentiment_info = sentiment_data.get(asset_symbol, {})
+            
+            prompt += f"""
+{asset_symbol} ({asset_name}):
+- Position: {quantity} shares @ ${avg_cost:.2f} avg cost
+- Current Value: ${current_value:,.2f}
+- Gain/Loss: ${gain_loss:,.2f} ({gain_loss_pct:+.2f}%)
+- Current Price: ${market_data.get('current_price', 'N/A')}
+- Price Change ({timeframe_days}d): {market_data.get('price_change_percentage', 0):+.2f}%
+- Volatility: {market_data.get('volatility', 0):.2f}%
+- Sentiment Score: {sentiment_info.get('sentiment_score', 50):.1f}/100
+- News Articles Analyzed: {sentiment_info.get('total_articles', 0)}
+- Sentiment: {sentiment_info.get('sentiment_label', 'neutral')}
+"""
+        
+        prompt += f"""
+
+ANALYSIS REQUIREMENTS:
+Provide a comprehensive portfolio analysis in the following JSON format:
+
+{{
+    "overall_assessment": {{
+        "portfolio_health": "EXCELLENT|GOOD|FAIR|POOR",
+        "risk_level": "LOW|MEDIUM|HIGH",
+        "diversification_score": "0-100",
+        "performance_rating": "A|B|C|D|F"
+    }},
+    "key_metrics": {{
+        "total_return_percentage": "calculated percentage",
+        "best_performer": "asset_symbol with best performance",
+        "worst_performer": "asset_symbol with worst performance",
+        "most_volatile": "asset_symbol with highest volatility",
+        "least_volatile": "asset_symbol with lowest volatility"
+    }},
+    "sector_analysis": {{
+        "sector_allocation": "breakdown by sector/asset type",
+        "concentration_risk": "assessment of concentration",
+        "diversification_recommendations": "specific recommendations"
+    }},
+    "individual_holdings_analysis": {{
+        "strong_holds": ["list of assets to maintain or increase"],
+        "weak_holds": ["list of assets to reduce or sell"],
+        "new_opportunities": ["suggested new positions"],
+        "position_sizing_recommendations": "specific recommendations for each holding"
+    }},
+    "risk_assessment": {{
+        "market_risk": "assessment of overall market exposure",
+        "concentration_risk": "risk from over-concentration",
+        "volatility_risk": "portfolio volatility assessment",
+        "liquidity_risk": "liquidity concerns"
+    }},
+    "recommendations": {{
+        "immediate_actions": ["specific actions to take now"],
+        "rebalancing_suggestions": ["how to rebalance the portfolio"],
+        "new_investments": ["suggested new positions"],
+        "exit_strategies": ["positions to consider selling"]
+    }},
+    "market_outlook": {{
+        "overall_sentiment": "BULLISH|BEARISH|NEUTRAL",
+        "key_drivers": ["main factors affecting portfolio"],
+        "sector_rotation_opportunities": ["sectors to rotate into/out of"],
+        "economic_indicators_impact": "how economic factors affect this portfolio"
+    }},
+    "executive_summary": "2-3 sentence summary of portfolio status and key recommendations"
+}}
+
+GUIDELINES:
+1. Be specific and actionable in all recommendations
+2. Consider the current market sentiment and economic conditions
+3. Focus on risk-adjusted returns and diversification
+4. Provide clear rationale for all recommendations
+5. Consider tax implications of any suggested changes
+6. Balance growth opportunities with risk management
+7. Consider the investor's time horizon and risk tolerance
+8. Provide specific percentage allocations where relevant
+9. Consider correlation between holdings
+10. Factor in transaction costs for rebalancing suggestions
+
+Generate the analysis now:
+"""
+        
+        return prompt
+    
+    def _parse_portfolio_analysis_response(self, response_text: str) -> Dict:
+        """Parse Gemini's portfolio analysis response"""
+        try:
+            # Try to extract JSON from the response
+            import re
+            json_match = re.search(r'\{.*\}', response_text, re.DOTALL)
+            if json_match:
+                json_str = json_match.group()
+                return json.loads(json_str)
+            else:
+                # If no JSON found, create structured response from text
+                return {
+                    'overall_assessment': {
+                        'portfolio_health': 'FAIR',
+                        'risk_level': 'MEDIUM',
+                        'diversification_score': 70,
+                        'performance_rating': 'B'
+                    },
+                    'executive_summary': response_text[:500] + "..." if len(response_text) > 500 else response_text,
+                    'raw_response': response_text
+                }
+        except Exception as e:
+            logger.error(f"Error parsing portfolio analysis response: {e}")
+            return {
+                'overall_assessment': {
+                    'portfolio_health': 'FAIR',
+                    'risk_level': 'MEDIUM',
+                    'diversification_score': 70,
+                    'performance_rating': 'B'
+                },
+                'executive_summary': 'Analysis completed with parsing issues',
+                'raw_response': response_text,
+                'parsing_error': str(e)
+            }
+    
+    def _create_fallback_portfolio_analysis(self, portfolio_context: Dict, holdings_data: Dict, 
+                                          sentiment_data: Dict) -> Dict:
+        """Create fallback portfolio analysis when Gemini fails"""
+        total_value = portfolio_context.get('total_value', 0)
+        total_cost = portfolio_context.get('total_cost', 0)
+        total_gain_loss = portfolio_context.get('total_gain_loss', 0)
+        
+        return {
+            'overall_assessment': {
+                'portfolio_health': 'GOOD' if total_gain_loss >= 0 else 'FAIR',
+                'risk_level': 'MEDIUM',
+                'diversification_score': 75,
+                'performance_rating': 'B' if total_gain_loss >= 0 else 'C'
+            },
+            'key_metrics': {
+                'total_return_percentage': f"{((total_gain_loss/total_cost)*100 if total_cost > 0 else 0):.2f}%",
+                'best_performer': 'Analysis unavailable',
+                'worst_performer': 'Analysis unavailable',
+                'most_volatile': 'Analysis unavailable',
+                'least_volatile': 'Analysis unavailable'
+            },
+            'executive_summary': f"Portfolio analysis completed. Total value: ${total_value:,.2f}, Gain/Loss: ${total_gain_loss:,.2f}. Detailed analysis unavailable due to technical issues.",
+            'fallback': True
+        }
