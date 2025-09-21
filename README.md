@@ -376,6 +376,6 @@ This project is provided as-is for educational purposes. Use at your own risk.
 
 ---
 
-**Built with ❤️ for the financial analysis community**
 
+PLEASE ENSURE THAT THIS IS NOT A PROFESSIONAL EXECUTION SYSTEM, WE DO NOT TAKE ANY LIABAILITY FOR THIS PROJECT'S OUTCOMES 
 *For support and questions, please open an issue on GitHub.*
