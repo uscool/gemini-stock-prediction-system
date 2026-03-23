@@ -2,42 +2,42 @@
 
 A comprehensive AI-powered financial market analysis system that combines FinBERT sentiment analysis, historical data analysis, and Google Gemini AI to make intelligent trading recommendations. Features a modern web interface with portfolio management, user authentication, and automated scheduling.
 
-## 🚀 Features
+## Features
 
-### 🤖 **AI-Powered Analysis**
+### **AI-Powered Analysis**
 - FinBERT-based sentiment analysis from multiple news sources
 - Historical price data analysis with 15+ technical indicators
 - Google Gemini AI for intelligent trading decisions
 - Portfolio-aware recommendations with position sizing
 
-### 🌐 **Modern Web Interface**
+### **Modern Web Interface**
 - Responsive web application with Bootstrap UI
 - User authentication and profile management
 - Real-time portfolio tracking and management
 - Interactive analysis dashboard
 - Automated scheduling system
 
-### 📊 **Portfolio Management**
+### **Portfolio Management**
 - Multi-portfolio support with holdings tracking
 - Real-time price updates and P&L calculations
 - Transaction history and performance analytics
 - Asset allocation and diversification insights
 - Portfolio-aware AI recommendations
 
-### 📧 **Automated Communication**
+### **Automated Communication**
 - Professional email generation for broker communication
 - Order-focused email content (client placing trades)
 - Portfolio context integration in recommendations
 - Automated scheduling with email notifications
 
-### 🎯 **Trading Recommendations**
+### **Trading Recommendations**
 - BUY/SELL/HOLD decisions with confidence levels
 - Position sizing recommendations (SMALL/MEDIUM/LARGE)
 - Risk assessment and stop-loss suggestions
 - Target price calculations
 - Sell recommendations for portfolio rebalancing
 
-## 🏗️ System Architecture
+## System Architecture
 
 ### Web Application Stack
 - **Backend**: Flask with SQLAlchemy ORM
@@ -62,7 +62,7 @@ A comprehensive AI-powered financial market analysis system that combines FinBER
 
 **Coverage:** Real-time RSS feeds with intelligent filtering for relevant financial news
 
-## 📋 Supported Assets
+## Supported Assets
 
 ### Commodities (15)
 **Precious Metals:** Gold, Silver, Platinum, Palladium  
@@ -73,7 +73,7 @@ A comprehensive AI-powered financial market analysis system that combines FinBER
 ### Stocks (59)
 Major stocks including Apple, Microsoft, Google, Amazon, Tesla, and more.
 
-## 🛠️ Installation
+## Installation
 
 ### Prerequisites
 - Python 3.8 or higher
@@ -138,7 +138,7 @@ SECRET_KEY=your_secret_key_here
 DATABASE_URL=sqlite:///instance/financial_analyzer.db
 ```
 
-## 🎮 Usage
+## Usage
 
 ### Web Interface
 
@@ -166,7 +166,7 @@ python main.py --commodities gold silver crude_oil --timeframe 14 --summary-emai
 python main.py --list-commodities
 ```
 
-## 🔄 Trading Integration
+## Trading Integration
 
 ### Current Implementation: Email-Based Trading
 
@@ -235,7 +235,7 @@ graph TD
 - **Risk Assessment**: Multi-factor risk scoring
 - **Compliance**: Audit trails and transaction logging
 
-## 📊 Portfolio Management Features
+## Portfolio Management Features
 
 ### Portfolio Tracking
 - **Multi-Portfolio Support**: Manage multiple investment portfolios
@@ -255,7 +255,7 @@ graph TD
 - **Tax Reporting**: Transaction data for tax purposes
 - **Performance Metrics**: ROI, Sharpe ratio, and other KPIs
 
-## 🔧 API Endpoints
+## API Endpoints
 
 ### Authentication
 - `POST /register` - User registration
@@ -286,7 +286,7 @@ graph TD
 - `DELETE /api/schedules/<id>` - Delete schedule
 - `POST /api/schedules/<id>/run` - Run schedule manually
 
-## 🛡️ Security Features
+## Security Features
 
 - **User Authentication**: Secure login with bcrypt password hashing
 - **CSRF Protection**: Cross-site request forgery protection
@@ -294,7 +294,7 @@ graph TD
 - **Input Validation**: Comprehensive input sanitization
 - **API Security**: Rate limiting and request validation
 
-## 📈 Performance
+## Performance
 
 - **Concurrent Analysis**: Multiple assets analyzed in parallel
 - **Intelligent Caching**: Reduces API calls and improves performance
@@ -302,10 +302,10 @@ graph TD
 - **Real-Time Updates**: WebSocket support for live data
 - **Scalable Architecture**: Ready for production deployment
 
-## 🚨 Important Disclaimers
+## Important Disclaimers
 
 ### Financial Disclaimer
-⚠️ **This system is for educational and research purposes only.**
+ **This system is for educational and research purposes only.**
 
 - **Not Financial Advice**: This is not professional financial advice
 - **Risk Warning**: All trading involves substantial risk of loss
@@ -319,7 +319,7 @@ graph TD
 - **Data Privacy**: Implement proper data protection measures
 - **Audit Requirements**: Maintain proper transaction records
 
-## 🔮 Future Enhancements
+## Future Enhancements
 
 ### Planned Features
 - **Mobile App**: React Native mobile application
@@ -337,16 +337,6 @@ graph TD
 - **Testing**: Automated testing suite
 - **CI/CD**: Continuous integration and deployment
 
-## 🤝 Contributing
-
-We welcome contributions! Please:
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests if applicable
-5. Submit a pull request
-
 ### Development Setup
 ```bash
 # Install development dependencies
@@ -362,20 +352,9 @@ flake8 .
 mypy .
 ```
 
-## 📄 License
+## License
 
 This project is provided as-is for educational purposes. Use at your own risk.
-
-## 🙏 Acknowledgments
-
-- **Google Gemini AI** for intelligent trading decisions
-- **FinBERT** for financial sentiment analysis
-- **Yahoo Finance** for market data
-- **Bootstrap** for the modern web interface
-- **Flask** for the robust web framework
-
----
-
 
 PLEASE ENSURE THAT THIS IS NOT A PROFESSIONAL EXECUTION SYSTEM, WE DO NOT TAKE ANY LIABAILITY FOR THIS PROJECT'S OUTCOMES 
 *For support and questions, please open an issue on GitHub.*
