@@ -357,7 +357,5 @@ mypy .
 This project is provided as-is for educational purposes. Use at your own risk.
 
 PLEASE ENSURE THAT THIS IS NOT A PROFESSIONAL EXECUTION SYSTEM, WE DO NOT TAKE ANY LIABAILITY FOR THIS PROJECT'S OUTCOMES 
-*For support and questions, please open an issue on GitHub.*
-
 
 SIDE NOTE: This README is AI generated
